@@ -51,15 +51,18 @@ Eigen::Matrix4d icp_registration(pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud, 
     }
 
     // Step 2: Find the closest points
+    pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+    kdtree.setInputCloud(tar_cloud);
     pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr tar_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::VoxelGrid<pcl::PointXYZ> sor;
-    sor.setInputCloud(src_cloud_trans);
-    sor.setLeafSize(0.1, 0.1, 0.1);
-    sor.filter(*src_cloud_filtered);
-    sor.setInputCloud(tar_cloud);
-    sor.setLeafSize(0.1, 0.1, 0.1);
-    sor.filter(*tar_cloud_filtered);
+    for(int i=0;i<src_cloud_trans->size();i++)
+    {
+      std::vector<int> pointIdxNKNSearch(1);
+      std::vector<float> pointNKNSquaredDistance(1);
+      kdtree.nearestKSearch(src_cloud_trans->points[i], 1, pointIdxNKNSearch, pointNKNSquaredDistance);
+      src_cloud_filtered->push_back(src_cloud_trans->points[i]);
+      tar_cloud_filtered->push_back(tar_cloud->points[pointIdxNKNSearch[0]]);
+    }
 
     // Step 3: Calculate the MSE
     double mse = 0;
