@@ -37,68 +37,61 @@ Eigen::Matrix4d icp_registration(pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud, 
 {
   Eigen::Matrix4d transformation = init_guess;
 
-  // calculate the centroid of src_cloud and tar_cloud
-  Eigen::Vector4f src_centroid;
-  pcl::compute3DCentroid(*src_cloud, src_centroid);
-
-  Eigen::Vector4f tar_centroid;
-  pcl::compute3DCentroid(*tar_cloud, tar_centroid);
-
-  // Center the clouds by subtracting the centroid
-  for (auto &point : *src_cloud)
+  for(int iter=0;iter<params::max_iterations;iter++)
   {
-    point.getVector3fMap() -= src_centroid.head<3>();
-  }
-
-  for (auto &point : *tar_cloud)
-  {
-    point.getVector3fMap() -= tar_centroid.head<3>();
-  }
-
-  for (int iter = 0; iter < params::max_iterations; iter++)
-  {
-    pcl::PointCloud<pcl::PointXYZ> src_cloud_trans;
-    for (const auto &point : *src_cloud)
+    // Step 1: Update the source point cloud
+    for(int i=0;i<src_cloud->size();i++)
     {
-      pcl::PointXYZ transformed_point;
-      Eigen::Vector4f homogenous_point(point.x, point.y, point.z, 1.0);
-      Eigen::Vector4f transformed_homogenous_point = transformation * homogenous_point;
-      transformed_point.x = transformed_homogenous_point.x();
-      transformed_point.y = transformed_homogenous_point.y();
-      transformed_point.z = transformed_homogenous_point.z();
-      src_cloud_trans.push_back(transformed_point);
+      Eigen::Vector4d src_point(src_cloud->points[i].x, src_cloud->points[i].y, src_cloud->points[i].z, 1);
+      Eigen::Vector4d tar_point = transformation * src_point;
+      src_cloud->points[i].x = tar_point(0);
+      src_cloud->points[i].y = tar_point(1);
+      src_cloud->points[i].z = tar_point(2);
     }
 
-    // calculate the nearest point to build the corrspondence
-    pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
-    kdtree.setInputCloud(tar_cloud);
+    // Step 2: Find the closest points
+    pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tar_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::VoxelGrid<pcl::PointXYZ> sor;
+    sor.setInputCloud(src_cloud);
+    sor.setLeafSize(0.1, 0.1, 0.1);
+    sor.filter(*src_cloud_filtered);
+    sor.setInputCloud(tar_cloud);
+    sor.setLeafSize(0.1, 0.1, 0.1);
+    sor.filter(*tar_cloud_filtered);
 
-    std::vector<Eigen::Vector3f> src_points;
-    std::vector<Eigen::Vector3f> tar_points;
-
-    std::vector<int> pointIdxNKNSearch(1);
-    std::vector<float> pointNKNSquaredDistance(1);
-
-    for (const auto &src_point : *src_cloud_trans)
+    // Step 3: Calculate the MSE
+    double mse = 0;
+    for(int i=0;i<src_cloud_filtered->size();i++)
     {
-      if (kdtree.nearestKSearch(src_point, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
-      {
-        src_points.push_back(src_point.getVector3fMap());
-        tar_points.push_back((*tar_cloud)[pointIdxNKNSearch[0]].getVector3fMap());
-      }
+      Eigen::Vector4d src_point(src_cloud_filtered->points[i].x, src_cloud_filtered->points[i].y, src_cloud_filtered->points[i].z, 1);
+      Eigen::Vector4d tar_point(tar_cloud_filtered->points[i].x, tar_cloud_filtered->points[i].y, tar_cloud_filtered->points[i].z, 1);
+      mse += (src_point - tar_point).squaredNorm();
     }
+    mse /= src_cloud_filtered->size();
 
-    // calculate the error
-    double MSE = 0;
-    for (size_t i = 0; i < src_points.size(); ++i)
-    {
-      MSE += (src_points[i] - tar_points[i]).squaredNorm();
-    }
-    MSE /= src_points.size();
+    // Step 4: Calculate the centroid of the two point clouds
+    Eigen::Vector4d src_centroid, tar_centroid;
+    pcl::compute3DCentroid(*src_cloud_filtered, src_centroid);
+    pcl::compute3DCentroid(*tar_cloud_filtered, tar_centroid);
 
-    if (MSE < 1e-6)
-    {
-    }
+    // Step 5: Calculate the covariance matrix
+    Eigen::Matrix3d src_cov, tar_cov;
+    pcl::computeCovarianceMatrixNormalized(*src_cloud_filtered, src_centroid, src_cov);
+    pcl::computeCovarianceMatrixNormalized(*tar_cloud_filtered, tar_centroid, tar_cov);
+
+    // Step 6: Calculate the rotation matrix
+    Eigen::JacobiSVD<Eigen::Matrix3d> svd(src_cov.transpose() * tar_cov, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Eigen::Matrix3d R = svd.matrixV() * svd.matrixU().transpose();
+
+    // Step 7: Calculate the translation vector
+    Eigen::Vector3d t = tar_centroid.head(3) - R * src_centroid.head(3);
+
+    // Step 8: Update the transformation matrix
+    Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
+    T.block<3, 3>(0, 0) = R;
+    T.block<3, 1>(0, 3) = t;
+    transformation = T * transformation;
   }
 
   return transformation;
