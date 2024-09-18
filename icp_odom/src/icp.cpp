@@ -6,6 +6,7 @@
 #include "icp.h"
 
 #include <pcl/registration/icp.h>
+#include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/filters/voxel_grid.h>
 
 #include "parameters.h"
@@ -37,52 +38,68 @@ Eigen::Matrix4d icp_registration(pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud, 
 {
   Eigen::Matrix4d transformation = init_guess;
 
-  for(int iter=0;iter<params::max_iterations;iter++)
+  for (int iter = 0; iter < params::max_iterations; iter++)
   {
     // Step 1: Update the source point cloud
     pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud_trans(new pcl::PointCloud<pcl::PointXYZ>(*src_cloud));
-    for(int i=0;i<src_cloud->size();i++)
+    for (int i = 0; i < src_cloud->size(); i++)
     {
       Eigen::Vector4d src_point(src_cloud->points[i].x, src_cloud->points[i].y, src_cloud->points[i].z, 1);
       Eigen::Vector4d trans_point = transformation * src_point;
-      src_cloud->points[i].x = trans_point(0);
-      src_cloud->points[i].y = trans_point(1);
-      src_cloud->points[i].z = trans_point(2);
+      src_cloud_trans->points[i].x = trans_point(0);
+      src_cloud_trans->points[i].y = trans_point(1);
+      src_cloud_trans->points[i].z = trans_point(2);
     }
 
     // Step 2: Find the closest points
-    pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
-    kdtree.setInputCloud(tar_cloud);
+    pcl::VoxelGrid<pcl::PointXYZ> voxel_grid;
     pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr tar_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-    for(int i=0;i<src_cloud_trans->size();i++)
+    voxel_grid.setLeafSize(0.1f, 0.1f, 0.1f);
+    voxel_grid.setInputCloud(src_cloud_trans);
+    voxel_grid.filter(*src_cloud_filtered);
+    voxel_grid.setInputCloud(tar_cloud);
+    voxel_grid.filter(*tar_cloud_filtered);
+
+    pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+    kdtree.setInputCloud(tar_cloud);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud_sample(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tar_cloud_sample(new pcl::PointCloud<pcl::PointXYZ>);
+    for (int i = 0; i < src_cloud_trans->size(); i++)
     {
       std::vector<int> pointIdxNKNSearch(1);
-      std::vector<float> pointNKNSquaredDistance(1);
-      kdtree.nearestKSearch(src_cloud_trans->points[i], 1, pointIdxNKNSearch, pointNKNSquaredDistance);
-      src_cloud_filtered->push_back(src_cloud_trans->points[i]);
-      tar_cloud_filtered->push_back(tar_cloud->points[pointIdxNKNSearch[0]]);
+      std::vector<float> pointNKNSquaredDistance(params::max_distance);
+      if (kdtree.nearestKSearch(src_cloud_trans->points[i], 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
+      {
+        src_cloud_sample->push_back(src_cloud_trans->points[i]);
+        tar_cloud_sample->push_back(tar_cloud->points[pointIdxNKNSearch[0]]);
+      }
     }
 
     // Step 3: Calculate the MSE
     double mse = 0;
-    for(int i=0;i<src_cloud_filtered->size();i++)
+    for (int i = 0; i < src_cloud_sample->size(); i++)
     {
-      Eigen::Vector4d src_point(src_cloud_filtered->points[i].x, src_cloud_filtered->points[i].y, src_cloud_filtered->points[i].z, 1);
-      Eigen::Vector4d tar_point(tar_cloud_filtered->points[i].x, tar_cloud_filtered->points[i].y, tar_cloud_filtered->points[i].z, 1);
+      Eigen::Vector4d src_point(src_cloud_sample->points[i].x, src_cloud_sample->points[i].y, src_cloud_sample->points[i].z, 1);
+      Eigen::Vector4d tar_point(tar_cloud_sample->points[i].x, tar_cloud_sample->points[i].y, tar_cloud_sample->points[i].z, 1);
       mse += (src_point - tar_point).squaredNorm();
     }
-    mse /= src_cloud_filtered->size();
+    mse /= src_cloud_sample->size();
+
+    if (mse < 1e-5)
+    {
+      break;
+    }
 
     // Step 4: Calculate the centroid of the two point clouds
     Eigen::Vector4d src_centroid, tar_centroid;
-    pcl::compute3DCentroid(*src_cloud_filtered, src_centroid);
-    pcl::compute3DCentroid(*tar_cloud_filtered, tar_centroid);
+    pcl::compute3DCentroid(*src_cloud_sample, src_centroid);
+    pcl::compute3DCentroid(*tar_cloud_sample, tar_centroid);
 
     // Step 5: Calculate the covariance matrix
     Eigen::Matrix3d src_cov, tar_cov;
-    pcl::computeCovarianceMatrixNormalized(*src_cloud_filtered, src_centroid, src_cov);
-    pcl::computeCovarianceMatrixNormalized(*tar_cloud_filtered, tar_centroid, tar_cov);
+    pcl::computeCovarianceMatrixNormalized(*src_cloud_sample, src_centroid, src_cov);
+    pcl::computeCovarianceMatrixNormalized(*tar_cloud_sample, tar_centroid, tar_cov);
 
     // Step 6: Calculate the rotation matrix
     Eigen::JacobiSVD<Eigen::Matrix3d> svd(src_cov.transpose() * tar_cov, Eigen::ComputeFullU | Eigen::ComputeFullV);
