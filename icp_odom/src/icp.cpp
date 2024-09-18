@@ -40,20 +40,21 @@ Eigen::Matrix4d icp_registration(pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud, 
   for(int iter=0;iter<params::max_iterations;iter++)
   {
     // Step 1: Update the source point cloud
+    pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud_trans;
     for(int i=0;i<src_cloud->size();i++)
     {
       Eigen::Vector4d src_point(src_cloud->points[i].x, src_cloud->points[i].y, src_cloud->points[i].z, 1);
-      Eigen::Vector4d tar_point = transformation * src_point;
-      src_cloud->points[i].x = tar_point(0);
-      src_cloud->points[i].y = tar_point(1);
-      src_cloud->points[i].z = tar_point(2);
+      Eigen::Vector4d trans_point = transformation * src_point;
+      src_cloud->points[i].x = trans_point(0);
+      src_cloud->points[i].y = trans_point(1);
+      src_cloud->points[i].z = trans_point(2);
     }
 
     // Step 2: Find the closest points
     pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr tar_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::VoxelGrid<pcl::PointXYZ> sor;
-    sor.setInputCloud(src_cloud);
+    sor.setInputCloud(src_cloud_trans);
     sor.setLeafSize(0.1, 0.1, 0.1);
     sor.filter(*src_cloud_filtered);
     sor.setInputCloud(tar_cloud);
