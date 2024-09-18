@@ -40,7 +40,7 @@ Eigen::Matrix4d icp_registration(pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud, 
   for(int iter=0;iter<params::max_iterations;iter++)
   {
     // Step 1: Update the source point cloud
-    pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud_trans;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud_trans(new pcl::PointCloud<pcl::PointXYZ>(*src_cloud));
     for(int i=0;i<src_cloud->size();i++)
     {
       Eigen::Vector4d src_point(src_cloud->points[i].x, src_cloud->points[i].y, src_cloud->points[i].z, 1);
