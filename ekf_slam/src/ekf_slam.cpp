@@ -37,9 +37,9 @@ EKFSLAM::EKFSLAM(ros::NodeHandle& nh) : nh_(nh) {
    * TODO: initialize the state vector and covariance matrix
    */
   mState = Eigen::VectorXd::Zero(3);  // x, y, yaw
-  mCov = mCov;
-  R = R;  // process noise
-  Q = Q;  // measurement noise
+  mCov = Eigen::MatrixXd::Identity(3, 3);  // Initialize covariance matrix
+  R = Eigen::MatrixXd::Identity(2, 2);  // Initialize process noise
+  Q = Eigen::MatrixXd::Identity(2, 2);  // Initialize measurement noise
 
   std::cout << "EKF SLAM initialized" << std::endl;
 }
@@ -116,6 +116,8 @@ Eigen::MatrixXd EKFSLAM::jacobGt(const Eigen::VectorXd& state,
   /**
    * TODO: implement the Jacobian Gt
    */
+  Gt(0, 2) = -dt * ut(0) * sin(state(2));
+  Gt(1, 2) = dt * ut(0) * cos(state(2));
   return Gt;
 }
 
@@ -126,6 +128,9 @@ Eigen::MatrixXd EKFSLAM::jacobFt(const Eigen::VectorXd& state,
   /**
    * TODO: implement the Jacobian Ft
    */
+  Ft(0, 0) = dt * cos(state(2));
+  Ft(1, 0) = dt * sin(state(2));
+  Ft(2, 1) = dt;
   return Ft;
 }
 
@@ -145,7 +150,7 @@ void EKFSLAM::predictState(Eigen::VectorXd& state, Eigen::MatrixXd& cov,
   state = state + jacobB(state, ut, dt) * ut;  // update state
   Eigen::MatrixXd Gt = jacobGt(state, ut, dt);
   Eigen::MatrixXd Ft = jacobFt(state, ut, dt);
-  //	cov = Gt * cov * Gt.transpose() + Ft * R * Ft.transpose(); // update
+  cov = Gt * cov * Gt.transpose() + Ft * R * Ft.transpose(); // update
   // covariance
 }
 
@@ -163,6 +168,15 @@ void EKFSLAM::addNewLandmark(const Eigen::Vector2d& lm,
   /**
    * TODO: implement the function
    */
+  int num_state = mState.rows();
+  Eigen::VectorXd state_new = Eigen::VectorXd::Zero(num_state + 2);
+  Eigen::MatrixXd cov_new = Eigen::MatrixXd::Zero(num_state + 2, num_state + 2);
+  state_new.segment(0, num_state) = mState;
+  state_new.segment(num_state, 2) = lm;
+  cov_new.block(0, 0, num_state, num_state) = mCov;
+  cov_new.block(num_state, num_state, 2, 2) = InitCov;
+  mState = state_new;
+  mCov = cov_new;
 }
 
 void EKFSLAM::accumulateMap() {
@@ -188,15 +202,24 @@ void EKFSLAM::updateMeasurement() {
   Eigen::VectorXi indices = Eigen::VectorXi::Ones(num_obs) *
                             -1;  // indices of landmarks in the state vector
   for (int i = 0; i < num_obs; ++i) {
-    Eigen::Vector2d pt_transformed =
-        transform(cylinderPoints.row(i),
-                  xwb);  // 2D pole center in the world frame
-                         // Implement the data association here, i.e., find the
-                         // corresponding landmark for each observation
-                         /**
-                          * TODO: data association
-                          *
-                          * **/
+    Eigen::Vector2d pt_transformed = transform(cylinderPoints.row(i), xwb);  
+    // 2D pole center in the world frame
+    // Implement the data association here, i.e., find the
+    // corresponding landmark for each observation
+    /**
+    * TODO: data association
+    *
+    * **/
+    double minDist = 0x3f3f3f3f;
+    for (int j = 0; j < num_landmarks; ++j) {
+      Eigen::Vector2d landmark = mState.block<2, 1>(3 + j * 2, 0);
+      double dist = (landmark - pt_transformed).norm();
+      if (dist < minDist) {
+        minDist = dist;
+        indices(i) = j;
+      }
+    }
+
     if (indices(i) == -1) {
       indices(i) = ++globalId;
       addNewLandmark(pt_transformed, Q);
@@ -220,6 +243,24 @@ void EKFSLAM::updateMeasurement() {
     /**
      * TODO: measurement update
      */
+      Eigen::Vector2d delta = landmark - xwb.segment(0, 2);
+      Eigen::Vector2d z_hat;
+      z_hat(0) = delta.norm();
+      z_hat(1) = atan2(delta(1), delta(0)) - xwb(2);
+      z_hat(1) = normalizeAngle(z_hat(1));
+      Eigen::MatrixXd H = Eigen::MatrixXd::Zero(2, mState.rows());
+      H(0, 0) = -delta(0) / delta.norm();
+      H(1, 0) = +delta(1) / delta.squaredNorm();
+      H(0, 1) = -delta(1) / delta.norm();
+      H(1, 1) = -delta(0) / delta.squaredNorm();
+      H(1, 2) = -1;
+      H(0, 3 + idx * 2) = +delta(0) / delta.norm();
+      H(1, 3 + idx * 2) = -delta(1) / delta.squaredNorm();
+      H(0, 4 + idx * 2) = +delta(1) / delta.norm();
+      H(1, 4 + idx * 2) = +delta(0) / delta.squaredNorm();
+      Eigen::MatrixXd K = mCov * H.transpose() * (H * mCov * H.transpose() + Q).inverse();
+      mState = mState + K * (z.segment(2 * i, 2) - z_hat);
+      mCov = (Eigen::MatrixXd::Identity(mState.rows(), mState.rows()) - K * H) * mCov;
   }
 }
 

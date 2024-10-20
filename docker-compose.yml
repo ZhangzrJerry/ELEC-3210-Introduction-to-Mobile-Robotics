@@ -9,11 +9,11 @@ services:
     restart: no
     privileged: true
     ports:
-      - "8080:8080"
+      - "3210:3210"
 
     environment:
       - DISPLAY=:10.0
-      - PORT=8080
+      - PORT=3210
     volumes:
       - ${APP_PATH}:/ws/src/app
       - ${DATA_PATH}:/ws/src/dataset
