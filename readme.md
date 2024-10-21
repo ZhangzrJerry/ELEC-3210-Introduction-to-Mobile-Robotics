@@ -1,6 +1,6 @@
 # ELEC 3210 Course Project
 
-HKUST ELEC3210 (24-25 Fall) Projects, materials are provided by TA @Jason-xy
+HKUST ELEC3210 (24-25 Fall) Projects, materials are provided by TA [@Jason-xy](https://github.com/Jason-xy/)
 
 ## ELEC 3210 Dev Environment Setup
 
