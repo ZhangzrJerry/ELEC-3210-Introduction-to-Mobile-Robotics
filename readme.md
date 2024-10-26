@@ -6,13 +6,17 @@ The repository contains 3 projects and some demos. TA [@Jason-xy](https://github
 
 ### [Project1 - ICP Odometry](./project1_icp_odom/)
 
-![](./results/icpodom.png)
+<div style="text-align:center">
+    <img src="./results/icpodom.png" width=50% style="border-radius:8px;">
+</div>
 
 ### [Project2 - EKF SLAM](./project2_ekf_slam/)
 
-- **Blog**: https://zhangzrjerry.github.io/blog/2024/10/21/ekf-slam-%E8%B0%83%E5%8F%82%E5%B0%8F%E8%AE%B0/
+- **Blog**: [https://zhangzrjerry.github.io/blog/2024/10/21/ekf-slam](https://zhangzrjerry.github.io/blog/2024/10/21/ekf-slam-%E8%B0%83%E5%8F%82%E5%B0%8F%E8%AE%B0/)
 
-![](./results/ekfslam.png)
+<div style="text-align:center">
+    <img src="./results/ekfslam.png" width=50% style="border-radius:8px;">
+</div>
 
 ### Project3 - A*
 
@@ -20,7 +24,9 @@ The repository contains 3 projects and some demos. TA [@Jason-xy](https://github
 
 ### [Demo1 - Harris Corner](./demo1_harris_corner/)
 
-![](./results/harris.png)
+<div style="text-align:center">
+    <img src="./results/harris.png" width=50% style="border-radius:8px;">
+</div>
 
 ## Environment Prepare
 
