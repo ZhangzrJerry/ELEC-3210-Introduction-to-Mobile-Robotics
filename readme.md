@@ -28,6 +28,12 @@ The repository contains 3 projects and some demos. TA [@Jason-xy](https://github
     <img src="./results/harris.png" width=50% style="border-radius:8px;">
 </div>
 
+### [Demo2 - SIFT + RANSAC](./demo2_sift+ransac/)
+
+<div style="text-align:center">
+    <img src="./results/ransac.png" width=50% style="border-radius:8px;">
+</div>
+
 ## Environment Prepare
 
 - for projects: [readme_project.md](./readme_project.md)
