@@ -1,6 +1,6 @@
 # ELEC 3210 Course Material
 
-The repository contains 3 projects and some demos. TA [@Jason-xy](https://github.com/Jason-xy/) provided the project materials. The demos are some of the implementations of algorithms taught in the lectures.
+The repository contains 3 projects and some demos. TA [@Jason-xy](https://github.com/Jason-xy/) provided the project materials. The demos is the implementation of some algorithms taught in class or some other mobile robot related algorithms.
 
 ## Projects
 
@@ -34,7 +34,14 @@ The repository contains 3 projects and some demos. TA [@Jason-xy](https://github
     <img src="./results/ransac.png" width=50% style="border-radius:8px;">
 </div>
 
+### [Demo3 - Cubic Spline](./demo3_cubic_spline/)
+
+<div style="text-align:center">
+    <img src="./results/spline.png" width=50% style="border-radius:8px;">
+</div>
+
 ## Environment Prepare
 
-- for projects: [readme_project.md](./readme_project.md)
-- for demos: [readme_demo.md](./readme_demo.md)
+- for ros: [readme_ros.md](./readme_project.md)
+- for 3d: [readme_3d.md](./readme_3d.md)
+- for ipynb: jupyter
