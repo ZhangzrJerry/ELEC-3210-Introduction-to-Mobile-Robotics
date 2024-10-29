@@ -1,6 +1,6 @@
 # ELEC 3210 Course Material
 
-The repository contains 3 projects and some demos. TA [@Jason-xy](https://github.com/Jason-xy/) provided the project materials. The demos is the implementation of some algorithms taught in class or some other mobile robot related algorithms.
+The repository contains 3 projects and some demos. Projects are the assignments and parts of assesments of the course. TA [@Jason-xy](https://github.com/Jason-xy/) provided the [original project materials](https://github.com/Jason-xy/elec3210-lab). The demos is the implementation of some algorithms taught in class or some other mobile robot related algorithms.
 
 ## Projects
 
