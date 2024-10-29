@@ -12,7 +12,7 @@ The repository contains 3 projects and some demos. TA [@Jason-xy](https://github
 
 ### [Project2 - EKF SLAM](./project2_ekf_slam/)
 
-- **Blog**: [https://zhangzrjerry.github.io/blog/2024/10/21/ekf-slam](https://zhangzrjerry.github.io/blog/2024/10/21/ekf-slam-%E8%B0%83%E5%8F%82%E5%B0%8F%E8%AE%B0/)
+- **Blog**: [https://zhangzrjerry.github.io/blog/2024/10/21/ekf-slam](https://zhangzrjerry.github.io/blog/2024/10/21/ekf-slam/)
 
 <div style="text-align:center">
     <img src="./results/ekfslam.png" width=50% style="border-radius:8px;">
@@ -35,6 +35,8 @@ The repository contains 3 projects and some demos. TA [@Jason-xy](https://github
 </div>
 
 ### [Demo3 - Cubic Spline](./demo3_cubic_spline/)
+
+- **Blog**: [https://zhangzrjerry.github.io/blog/2024/10/22/cubic-spline](https://zhangzrjerry.github.io/blog/2024/10/22/cubic-spline/)
 
 <div style="text-align:center">
     <img src="./results/spline.png" width=50% style="border-radius:8px;">
