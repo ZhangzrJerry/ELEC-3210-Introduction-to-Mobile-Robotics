@@ -12,7 +12,7 @@ The repository contains 3 projects and some demos. TA [@Jason-xy](https://github
 
 ### [Project2 - EKF SLAM](./project2_ekf_slam/)
 
-- **Blog**: [https://zhangzrjerry.github.io/blog/2024/10/21/ekf-slam](https://zhangzrjerry.github.io/blog/2024/10/21/ekf-slam/)
+- **Blog**: [zhangzrjerry.github.io/blog/2024/10/21/ekf-slam](https://zhangzrjerry.github.io/blog/2024/10/21/ekf-slam/)
 
 <div style="text-align:center">
     <img src="./results/ekfslam.png" width=50% style="border-radius:8px;">
@@ -36,10 +36,19 @@ The repository contains 3 projects and some demos. TA [@Jason-xy](https://github
 
 ### [Demo3 - Cubic Spline](./demo3_cubic_spline/)
 
-- **Blog**: [https://zhangzrjerry.github.io/blog/2024/10/22/cubic-spline](https://zhangzrjerry.github.io/blog/2024/10/22/cubic-spline/)
+- **Blog**: [zhangzrjerry.github.io/blog/2024/10/22/cubic-spline](https://zhangzrjerry.github.io/blog/2024/10/22/cubic-spline/)
 
 <div style="text-align:center">
     <img src="./results/spline.png" width=50% style="border-radius:8px;">
+</div>
+
+### [Demo4 - Model Predict Control based on PHR ALM](./demo4_mpc_alm/)
+
+- **Blog**: [zhangzrjerry.github.io/blog/2024/10/28/trajectory-tracking-task](https://zhangzrjerry.github.io/blog/2024/10/28/trajectory-tracking-task/)
+- **Debug Diary**: [zhangzrjerry.github.io/blog/2024/10/29/mpc--phr-debug-note](https://zhangzrjerry.github.io/blog/2024/10/29/mpc--phr-debug-note/)
+
+<div style="text-align:center">
+    <img src="./results/mpcalm.gif" width=50% style="border-radius:8px;">
 </div>
 
 ## Environment Prepare
