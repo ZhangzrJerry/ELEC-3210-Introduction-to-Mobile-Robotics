@@ -91,6 +91,7 @@ void load_waypoints(ros::NodeHandle& nh, const ros::Time& time_base) {
 void publish_waypoints() {
   waypoints.header.frame_id = std::string("world");
   waypoints.header.stamp = ros::Time::now();
+  ROS_INFO("[waypoint_generator] publish waypoints");
   pub1.publish(waypoints);
   geometry_msgs::PoseStamped init_pose;
   init_pose.header = odom.header;
@@ -121,6 +122,7 @@ void publish_waypoints_vis() {
 }
 
 void odom_callback(const nav_msgs::Odometry::ConstPtr& msg) {
+  ROS_INFO("[waypoint_generator] odom received");
   is_odom_ready = true;
   odom = *msg;
 
@@ -152,6 +154,7 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr& msg) {
 }
 
 void goal_callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+  ROS_INFO("[waypoint_generator] goal received");
   /*    if (!is_odom_ready) {
           ROS_ERROR("[waypoint_generator] No odom!");
           return;
@@ -216,6 +219,7 @@ void goal_callback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 }
 
 void traj_start_trigger_callback(const geometry_msgs::PoseStamped& msg) {
+  ROS_INFO("[waypoint_generator] trigger received");
   if (!is_odom_ready) {
     ROS_ERROR("[waypoint_generator] No odom!");
     return;

@@ -4,9 +4,9 @@
 <arg name="map_size_y" default="10.0"/>
 <arg name="map_size_z" default=" 5.0"/>
 
-<arg name="start_x" default=" 0.0"/>
-<arg name="start_y" default=" 0.0"/>
-<arg name="start_z" default=" 2.0"/>
+<arg name="start_x" default="-5.0"/>
+<arg name="start_y" default="-5.0"/>
+<arg name="start_z" default=" 3.5"/>
 
   <node pkg="grid_path_searcher" type="demo_node" name="demo_node" output="screen" required = "true">
       <remap from="~waypoints"       to="/waypoint_generator/waypoints"/>
