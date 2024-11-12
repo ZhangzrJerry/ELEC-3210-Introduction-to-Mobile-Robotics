@@ -18,7 +18,11 @@ The repository contains 3 projects and some demos. Projects are the assignments 
     <img src="./results/ekfslam.png" width=50% style="border-radius:8px;">
 </div>
 
-### Project3 - A*
+### [Project3 - A Star](./project3_a_star/)
+
+<div style="text-align:center">
+    <img src="./results/astar.png" width=60% style="border-radius:8px;">
+</div>
 
 ## Demos
 
