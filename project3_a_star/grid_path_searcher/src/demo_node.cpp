@@ -44,18 +44,24 @@ void visVisitedNode(vector<Vector3d> nodes);
 void pathFinding(const Vector3d start_pt, const Vector3d target_pt);
 
 void rcvWaypointsCallback(const nav_msgs::Path& wp) {
-  if (wp.poses[0].pose.position.z < 0.0 || _has_map == false) return;
+  if (wp.poses[0].pose.position.z < 0.0 || _has_map == false) {
+    ROS_ERROR("[node] No map or invalid waypoints");
+    return;
+  }
+  ROS_INFO("[node] receive the waypoints");
 
   Vector3d target_pt;
   target_pt << wp.poses[0].pose.position.x, wp.poses[0].pose.position.y,
       wp.poses[0].pose.position.z;
 
-  ROS_INFO("[node] receive the planning target");
   pathFinding(_start_pt, target_pt);
 }
 
 void rcvPointCloudCallBack(const sensor_msgs::PointCloud2& pointcloud_map) {
-  if (_has_map) return;
+  if (_has_map){
+    return;
+  }
+  ROS_INFO("[node] receive the point cloud map");
 
   pcl::PointCloud<pcl::PointXYZ> cloud;
   pcl::PointCloud<pcl::PointXYZ> cloud_vis;
@@ -94,6 +100,7 @@ void rcvPointCloudCallBack(const sensor_msgs::PointCloud2& pointcloud_map) {
 }
 
 void pathFinding(const Vector3d start_pt, const Vector3d target_pt) {
+  ROS_INFO("[node] Start to find a path");
   // Call A* to search for a path
   _astar_path_finder->AstarGraphSearch(start_pt, target_pt);
 
@@ -102,11 +109,12 @@ void pathFinding(const Vector3d start_pt, const Vector3d target_pt) {
   auto visited_nodes = _astar_path_finder->getVisitedNodes();
 
   // Visualize the result
-  visGridPath(grid_path, false);
+  visGridPath(grid_path, true);
   visVisitedNode(visited_nodes);
 
   // Reset map for next call
   _astar_path_finder->resetUsedGrids();
+  ROS_INFO("[node] Path finding finished");
 }
 
 int main(int argc, char** argv) {
@@ -219,7 +227,7 @@ void visVisitedNode(vector<Vector3d> nodes) {
   node_vis.pose.orientation.y = 0.0;
   node_vis.pose.orientation.z = 0.0;
   node_vis.pose.orientation.w = 1.0;
-  node_vis.color.a = 0.5;
+  node_vis.color.a = 0.0;
   node_vis.color.r = 0.0;
   node_vis.color.g = 0.0;
   node_vis.color.b = 1.0;

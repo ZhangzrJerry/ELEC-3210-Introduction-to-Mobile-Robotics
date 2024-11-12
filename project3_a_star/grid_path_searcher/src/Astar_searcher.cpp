@@ -28,6 +28,7 @@ void AstarPathFinder::initGridMap(double _resolution, Vector3d global_xyz_l,
 
   // Allocate and initialize data
   data = new uint8_t[GLXYZ_SIZE]();
+  ROS_INFO("Grid map is set up: %d x %d x %d", GLX_SIZE, GLY_SIZE, GLZ_SIZE);
 
   // Allocate GridNodeMap
   GridNodeMap = new GridNodePtr**[GLX_SIZE];
@@ -115,11 +116,10 @@ inline bool AstarPathFinder::isFree(const Eigen::Vector3i& index) const {
   return isFree(index(0), index(1), index(2));
 }
 
-inline bool AstarPathFinder::isOccupied(const int& idx_x, const int& idx_y,
-                                        const int& idx_z) const {
+inline bool AstarPathFinder::isOccupied(const int& idx_x, const int& idx_y, const int& idx_z) const {
   return (idx_x >= 0 && idx_x < GLX_SIZE && idx_y >= 0 && idx_y < GLY_SIZE &&
-          idx_z >= 0 && idx_z < GLZ_SIZE &&
-          (data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z] == 1));
+        idx_z >= 0 && idx_z < GLZ_SIZE &&
+        (data[idx_x * GLYZ_SIZE + idx_y * GLZ_SIZE + idx_z] == 1));
 }
 
 inline bool AstarPathFinder::isFree(const int& idx_x, const int& idx_y,
@@ -144,6 +144,41 @@ inline void AstarPathFinder::AstarGetSucc(GridNodePtr currentPtr,
    * Note: Be careful with the index bound                 *
    *********************************************************/
   // TODO: Implement Step 4
+  Vector3i previous_idx = currentPtr->cameFrom ? currentPtr->cameFrom->index : currentPtr->index;
+  Vector3i current_idx = currentPtr->index;
+  int margin = 1;
+  for (int i = -1; i <= 1; i++) {
+    for (int j = -1; j <= 1; j++) {
+      for (int k = -1; k <= 1; k++) {
+        if (i == 0 && j == 0 && k == 0) {
+          continue;
+        }
+        Vector3i neighbor_idx = current_idx + Vector3i(i, j, k);
+        // safe distance
+        bool flag = false;
+        for(int ii=-margin;ii<=margin;ii++){
+          for(int jj=-margin;jj<=margin;jj++){
+            for(int kk=-margin;kk<=margin;kk++){
+              int ni = neighbor_idx(0) + ii;
+              int nj = neighbor_idx(1) + jj;
+              int nk = neighbor_idx(2) + kk;
+              if (ni < 0 || ni >= GLX_SIZE || nj < 0 || nj >= GLY_SIZE || nk < 0 || nk >= GLZ_SIZE) {
+                continue;
+              }
+              flag = flag || (!isFree(ni, nj, nk));
+              if (flag) break;
+            }
+            if(flag) break;
+          }
+          if(flag) break;
+        }
+        if(flag || !isFree(neighbor_idx)) continue;
+        GridNodePtr neighborPtr = GridNodeMap[neighbor_idx(0)][neighbor_idx(1)][neighbor_idx(2)];
+        neighborPtrSets.push_back(neighborPtr);
+        edgeCostSets.push_back((neighbor_idx + previous_idx - 2 * current_idx).lpNorm<2>()  + (neighbor_idx - current_idx).lpNorm<1>());
+      }
+    }
+  }
 }
 
 double AstarPathFinder::getHeu(GridNodePtr node1, GridNodePtr node2) {
@@ -167,6 +202,7 @@ double AstarPathFinder::getHeu(GridNodePtr node1, GridNodePtr node2) {
   auto node2_coord = node2->coord;
 
   // TODO: Implement heuristic function
+  h = (node1_coord - node2_coord).lpNorm<1>() * 1.;
 
   return h;
 }
@@ -198,10 +234,10 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt) {
   startPtr->gScore = 0;
   startPtr->fScore = getHeu(startPtr, endPtr);
 
-  // STEP 1: finish the AstarPathFinder::getHeu , which is the heuristic
-  // function
+  // STEP 1: finish the AstarPathFinder::getHeu , which is the heuristic function
   startPtr->id = 1;
   startPtr->coord = start_pt;
+  startPtr->cameFrom = NULL;
   openSet.insert(make_pair(startPtr->fScore, startPtr));
 
   /****************************************************************
@@ -212,11 +248,14 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt) {
    * id: 1 in OPEN, id -1: in CLOSE )                              *
    * **************************************************************/
   // TODO: Make start point as visited
+  startPtr->id = -1;  
 
   vector<GridNodePtr> neighborPtrSets;
   vector<double> edgeCostSets;
   Eigen::Vector3i current_idx;  // record the current index
 
+  ROS_INFO("[node] startIdx: %d, %d, %d", start_idx(0), start_idx(1), start_idx(2));
+  ROS_INFO("[node] goalIdx: %d, %d, %d", goalIdx(0), goalIdx(1), goalIdx(2));
   // this is the main loop
   while (!openSet.empty()) {
     /*************************************************************
@@ -225,17 +264,22 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt) {
      * Note: This part you should use the C++ STL: multimap       *
      * ***********************************************************/
     // TODO: Implement Step 3
+    currentPtr = openSet.begin()->second;
+    openSet.erase(openSet.begin());
 
     // TODO: If the current node is the goal node, break the loop
+    if (currentPtr->index == goalIdx) {
+      terminatePtr = currentPtr;
+      break;
+    }
 
     // Get the succetion
     AstarGetSucc(currentPtr, neighborPtrSets,
                  edgeCostSets);  // STEP 4: finish AstarPathFinder::AstarGetSucc
 
     /***************************************************************
-     * STEP 5: For all unexpanded neigbors "m" of node "n", please  *
-     * finish this for loop                                         *
-     * **************************************************************/
+     * STEP 5: For all unexpanded neigbors "m" of node "n", please
+     * finish this for loop                    **************************************************************/
     for (int i = 0; i < (int)neighborPtrSets.size(); i++) {
       // Judge if the neigbors have been expanded
       // Note: neighborPtrSets[i]->id = -1 : expanded, equal to this node is in
@@ -252,7 +296,11 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt) {
          * Note: shall update: gScore, fScore, cameFrom, id            *
          * **************************************************************/
         // TODO: Implement Step 6
-
+        neighborPtr->id = 1;
+        neighborPtr->cameFrom = currentPtr;
+        neighborPtr->gScore = currentPtr->gScore + edgeCostSets[i];
+        neighborPtr->fScore = neighborPtr->gScore + getHeu(neighborPtr, endPtr);
+        openSet.insert(make_pair(neighborPtr->fScore, neighborPtr));
         continue;
       } else if (neighborPtr->id ==
                  1) {  // this node is in open set and need to judge if it needs
@@ -264,8 +312,13 @@ void AstarPathFinder::AstarGraphSearch(Vector3d start_pt, Vector3d end_pt) {
          * Note: shall update: gScore; fScore; cameFrom                *
          * **************************************************************/
         // TODO: Implement Step 7
+        if (neighborPtr->gScore > currentPtr->gScore + edgeCostSets[i]) {
+          neighborPtr->cameFrom = currentPtr;
+          neighborPtr->gScore = currentPtr->gScore + edgeCostSets[i];
+          neighborPtr->fScore = neighborPtr->gScore + getHeu(neighborPtr, endPtr);
 
         continue;
+        }
       }
     }
   }
